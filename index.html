@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Tap King</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+    .score {
+      font-size: 64px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+      color: #ffd700;
+    }
+    .per-tap {
+      font-size: 16px;
+      opacity: 0.7;
+      margin-bottom: 40px;
+    }
+    .coin {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffe97a, #ffb700, #b87400);
+      box-shadow:
+        0 0 60px rgba(255, 183, 0, 0.7),
+        inset 0 -10px 30px rgba(0,0,0,0.3),
+        inset 0 10px 30px rgba(255,255,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 90px;
+      cursor: pointer;
+      transition: transform 0.08s ease;
+      position: relative;
+    }
+    .coin:active { transform: scale(0.92); }
+    .float {
+      position: absolute;
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffd700;
+      pointer-events: none;
+      animation: floatUp 0.8s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-120px) scale(1.5); }
+    }
+    .upgrade {
+      margin-top: 50px;
+      padding: 16px 32px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(135deg, #00c853, #00e676);
+      color: #003300;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(0, 200, 83, 0.4);
+    }
+    .upgrade:active { transform: scale(0.95); }
+    .upgrade:disabled {
+      background: #444;
+      color: #888;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="score" id="score">0</div>
+  <div class="per-tap" id="perTap">+1 за тап</div>
+
+  <div class="coin" id="coin">🪙</div>
+
+  <button class="upgrade" id="upgrade">Улучшить (50 🪙)</button>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  tg?.ready();
+  tg?.expand();
+
+  let score = parseInt(localStorage.getItem('score') || '0');
+  let perTap = parseInt(localStorage.getItem('perTap') || '1');
+  let upgradeCost = parseInt(localStorage.getItem('upgradeCost') || '50');
+
+  const scoreEl = document.getElementById('score');
+  const perTapEl = document.getElementById('perTap');
+  const coinEl = document.getElementById('coin');
+  const upgradeBtn = document.getElementById('upgrade');
+
+  function render() {
+    scoreEl.textContent = score;
+    perTapEl.textContent = `+${perTap} за тап`;
+    upgradeBtn.textContent = `Улучшить (${upgradeCost} 🪙)`;
+    upgradeBtn.disabled = score < upgradeCost;
+  }
+
+  function save() {
+    localStorage.setItem('score', score);
+    localStorage.setItem('perTap', perTap);
+    localStorage.setItem('upgradeCost', upgradeCost);
+  }
+
+  coinEl.addEventListener('click', (e) => {
+    score += perTap;
+    render();
+    save();
+
+    // вибрация
+    tg?.HapticFeedback?.impactOccurred('light');
+
+    // всплывающий текст
+    const float = document.createElement('div');
+    float.className = 'float';
+    float.textContent = `+${perTap}`;
+    const rect = coinEl.getBoundingClientRect();
+    float.style.left = (e.clientX - 20) + 'px';
+    float.style.top = (e.clientY - 20) + 'px';
+    float.style.position = 'fixed';
+    document.body.appendChild(float);
+    setTimeout(() => float.remove(), 800);
+  });
+
+  upgradeBtn.addEventListener('click', () => {
+    if (score < upgradeCost) return;
+    score -= upgradeCost;
+    perTap += 1;
+    upgradeCost = Math.floor(upgradeCost * 1.8);
+    render();
+    save();
+    tg?.HapticFeedback?.notificationOccurred('success');
+  });
+
+  render();
+</script>
+</body>
+</html>
